@@ -1,0 +1,3 @@
+interface:
+  display_name: "Checking Architecture Boundaries"
+  short_description: "Keep domain logic and module boundaries clear without heavy DDD"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Protecting Critical Behavior"
+  short_description: "Apply focused automated protection where regression risk is real"

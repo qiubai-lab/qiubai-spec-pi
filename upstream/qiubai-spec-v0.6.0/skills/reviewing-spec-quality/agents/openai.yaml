@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reviewing Spec Quality"
+  short_description: "Independently review strict or ambiguous qb-spec changes"
+  default_prompt: "Use $reviewing-spec-quality to independently review this strict or ambiguous qb-spec change."

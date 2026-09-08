@@ -1,0 +1,15 @@
+{
+  "name": "qiubai-spec",
+  "version": "0.6.0",
+  "description": "用于按实际风险轻量推进项目基线、结构重构、需求与实施验证的一组协作 skills，普通变更使用合并文档并保留关键行为保护。",
+  "author": {
+    "name": "Personal"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "QiuBai 工程基线与规格",
+    "shortDescription": "风险分级、合并变更文档与聚焦验证",
+    "longDescription": "低风险任务直接实施和验证，普通变更合并需求、步骤与证据，高风险保留独立审查。按需建立工程基线、指导结构重构和文件增长治理，复用授权与验证证据并完成归档。",
+    "developerName": "Personal"
+  }
+}

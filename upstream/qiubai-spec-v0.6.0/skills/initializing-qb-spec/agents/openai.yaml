@@ -1,0 +1,7 @@
+interface:
+  display_name: "Initialize qb-spec"
+  short_description: "Connect qb-spec context with explicitly authorized entry setup"
+  default_prompt: "Use $initializing-qb-spec to add or refresh this project's qb-spec context-routing block."
+
+policy:
+  allow_implicit_invocation: false

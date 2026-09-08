@@ -1,0 +1,48 @@
+{
+  "name": "qiubai-spec-pi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi-native TypeScript tools for safe qb-spec document inspection, lifecycle transitions, archiving, and diagnostics.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qiubai-lab/qiubai-spec-pi.git"
+  },
+  "keywords": [
+    "pi-package",
+    "qb-spec"
+  ],
+  "type": "module",
+  "files": [
+    "extensions",
+    "src",
+    "references",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.85.1",
+    "@earendil-works/pi-coding-agent": "0.85.1",
+    "@earendil-works/pi-tui": "0.85.1",
+    "@types/node": "^24.0.0",
+    "typebox": "^1.0.0",
+    "typescript": "^5.9.0"
+  }
+}

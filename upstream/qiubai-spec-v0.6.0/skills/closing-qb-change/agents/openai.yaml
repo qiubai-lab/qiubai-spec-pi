@@ -1,0 +1,4 @@
+interface:
+  display_name: "Closing qb-spec Changes"
+  short_description: "Recover or manually close exceptional qb-spec archives"
+  default_prompt: "Use $closing-qb-change to recover or manually close this persisted qb-spec change."
