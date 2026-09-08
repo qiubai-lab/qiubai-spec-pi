@@ -4,34 +4,190 @@
 
 实现基于仓库内冻结的 `qiubai-spec` v0.6.0 开发基线。生产 package 自带独立 skills/references，不读取或执行 `upstream/`，也不需要 Python。
 
-## 安装与卸载
+## 环境与仓库
 
-克隆本仓库后，在仓库根目录执行：
+- GitHub：<https://github.com/qiubai-lab/qiubai-spec-pi.git>
+- Node.js：`>=22.19.0`
+- 首个已验证 Pi 版本：`@earendil-works/pi-coding-agent` 0.85.1
+- Pi runtime 必须导出 `withFileMutationQueue`
+- 无 Python 运行时依赖
+- 当前未发布到 npm registry；请使用 GitHub 或本地路径安装
+
+可先检查本地环境：
 
 ```bash
+node --version
+pi --version
+```
+
+## 安装
+
+### 推荐：从 GitHub 安装到当前用户
+
+该方式对所有项目生效：
+
+```bash
+pi install https://github.com/qiubai-lab/qiubai-spec-pi.git
+```
+
+安装完成后重新启动 Pi；若 Pi 已经运行，也可以执行 `/reload` 重新加载 extensions、skills 和 prompts。
+
+### 只为当前项目安装
+
+在目标项目根目录执行：
+
+```bash
+pi install https://github.com/qiubai-lab/qiubai-spec-pi.git -l
+```
+
+该命令写入项目的 `.pi/settings.json`。Pi 只会在项目受信任后加载项目级 package；团队共享该设置前应确认所有成员都信任此仓库和本插件。
+
+### 固定 tag 或 commit
+
+生产或团队重复安装建议固定经过验证的 tag/commit：
+
+```bash
+pi install git:github.com/qiubai-lab/qiubai-spec-pi@<tag-or-commit>
+```
+
+固定 ref 不会被普通 package update 自动移动到新版本。升级时应明确安装新的 ref：
+
+```bash
+pi install git:github.com/qiubai-lab/qiubai-spec-pi@<new-tag-or-commit>
+```
+
+### 从本地 clone 安装
+
+适合开发和审查源码：
+
+```bash
+git clone https://github.com/qiubai-lab/qiubai-spec-pi.git
+cd qiubai-spec-pi
+npm ci
 pi install .
 ```
 
-临时验证：
+本地路径安装只是让 Pi 指向当前目录，不会复制仓库。修改或拉取代码后，重新启动 Pi 或执行 `/reload`。
+
+### 临时加载，不写入设置
+
+在本仓库根目录执行：
 
 ```bash
 pi -e .
 ```
 
-卸载时使用 `pi list` 确认 Pi 记录的本地绝对路径，然后执行：
+适合首次审查和 smoke test；退出后不会保留为已安装 package。
+
+## 验证安装
+
+先检查 package 记录：
+
+```bash
+pi list
+```
+
+启动 Pi 后输入 `/`，应能看到：
+
+```text
+/qiubai-spec
+/qiubai-init
+```
+
+启用 Pi skill commands 时，还可以看到 11 个 `/skill:<name>` 命令。若 skill commands 被隐藏，可在 `/settings` 中启用，或在 settings 中设置：
+
+```json
+{
+  "enableSkillCommands": true
+}
+```
+
+Prompt Templates 和 skills 正常加载后，以下命令只应解释初始化模式，不修改项目：
+
+```text
+/qiubai-init
+```
+
+## 更新
+
+### 更新所有已安装 packages
+
+```bash
+pi update --extensions
+```
+
+### 只更新本插件
+
+使用 `pi list` 中记录的 source；GitHub 安装通常可以执行：
+
+```bash
+pi update --extension https://github.com/qiubai-lab/qiubai-spec-pi.git
+```
+
+也可以使用：
+
+```bash
+pi update https://github.com/qiubai-lab/qiubai-spec-pi.git
+```
+
+`pi update` 不带参数时默认只更新 Pi 本身，不更新 packages。若要同时更新 Pi 和 packages：
+
+```bash
+pi update --all
+```
+
+更新后重新启动 Pi 或执行 `/reload`。更新前建议保持项目工作树可恢复，并阅读目标版本的变更说明；如果安装的是固定 tag/commit，必须通过 `pi install ...@<new-ref>` 显式移动版本。
+
+对于本地 clone 安装，由用户自行更新 checkout：
+
+```bash
+git -C /path/to/qiubai-spec-pi pull --ff-only
+npm --prefix /path/to/qiubai-spec-pi ci
+```
+
+然后重新启动 Pi 或执行 `/reload`。
+
+## 卸载
+
+先使用 `pi list` 获取安装时记录的准确 source，然后按相同 scope 删除。
+
+用户级 GitHub 安装：
+
+```bash
+pi remove https://github.com/qiubai-lab/qiubai-spec-pi.git
+```
+
+项目级安装需要在项目根目录添加 `-l`：
+
+```bash
+pi remove https://github.com/qiubai-lab/qiubai-spec-pi.git -l
+```
+
+本地路径安装：
 
 ```bash
 pi remove /absolute/path/to/qiubai-spec-pi
 ```
 
-## 环境
+`pi uninstall` 是 `pi remove` 的别名。卸载只移除 Pi settings 中的 package source，不删除：
 
-- Node.js `>=22.19.0`
-- 首个已验证 Pi 版本：`@earendil-works/pi-coding-agent` 0.85.1
-- Pi runtime 必须导出 `withFileMutationQueue`
-- 无 Python 运行时依赖
+- 本地 clone
+- 目标项目的 `docs/qb-spec/`
+- 已创建的 `AGENTS.md` managed block
+- change archive、pending journal 或其他项目文档
 
-Pi extension 以当前用户权限运行。`qb_spec_transition` 会替换源文档，`qb_spec_archive` 在校验归档副本后会删除 active 来源。首次使用应在临时项目或已纳入版本控制的项目中验证。
+如需清理这些项目文件，应先检查版本控制和 recovery 状态，不要把卸载当作数据恢复操作。
+
+## 快速开始
+
+1. 进入准备开发的项目并启动 Pi。
+2. 已有项目首次采用时执行 `/qiubai-init adopt <范围>`；只设置 Agent 入口时使用 `/qiubai-init entry`；明确创建新项目时才使用 `/qiubai-init bootstrap <说明>`。
+3. 使用 `/qiubai-spec <开发请求>` 启动普通开发流程。
+4. 审阅 Agent 给出的 scope、type/tier、acceptance 和需要确认的决定。调用入口或创建 spec 本身不等于批准。
+5. Agent 按集中式 routing 实施和验证，并在证据充分后调用机械工具归档。
+6. 若出现 pending/partial archive，先让 Agent 调用 `qb_spec_doctor`；只有用户明确选择 doctor 报告的安全动作后，才调用 `qb_spec_recover`。
+
+Pi extension 以当前用户权限运行。`qb_spec_transition` 会替换源文档，`qb_spec_archive` 会在校验归档副本后删除 active 来源，`qb_spec_recover` 可能完成来源删除或撤销已知归档副本。首次使用应在临时项目或已纳入版本控制的项目中验证。
 
 ## 常用入口
 
@@ -140,6 +296,48 @@ package 提供以下 11 个按需加载的 skills：
 锁和 mutation queue 只协调合作的 Pi 文件工具，不能阻止恶意或不合作的外部进程。不要在同一 tool batch 中让 `edit`/`write` 与 qb-spec 写工具修改同一 change。
 
 Windows 对 symlink 权限、rename 和已打开文件删除的语义可能不同；未在 Windows runner 验证前，不宣称完全跨平台。
+
+## 常见问题
+
+### 看不到 `/qiubai-spec` 或 `/qiubai-init`
+
+1. 运行 `pi list`，确认 package 已记录在预期的用户或项目 scope。
+2. 项目级安装时确认当前项目已受信任。
+3. 在 Pi 中执行 `/reload`，或完全退出后重新启动。
+4. 运行 `pi config`，确认该 package 的 prompts、skills 和 extension 没有被过滤或禁用。
+5. 本地路径安装时确认原目录仍存在，且 `package.json` 中声明了 `./prompts`、`./skills` 和 `./extensions/index.ts`。
+
+### `/skill:<name>` 没有显示
+
+Skill 自动发现仍然有效，但 slash skill commands 可以单独关闭。在 `/settings` 中开启 skill commands，或设置 `"enableSkillCommands": true`。普通用户可以继续使用 `/qiubai-spec`，无需逐个调用 skill。
+
+### 出现 `QB_INCOMPATIBLE_PI`
+
+当前 Pi runtime 缺少插件写工具需要的 `withFileMutationQueue`。升级 Pi 后重新启动：
+
+```bash
+pi update --self
+```
+
+不要通过删除兼容性检查或改用直接文件写入绕过该错误。
+
+### 出现 `QB_LOCKED`、`QB_RECOVERY_REQUIRED` 或 `QB_RECOVERY_AMBIGUOUS`
+
+不要直接删除 `.qb-change.lock`、`.qb-pending.json` 或 archive 目录。先让 Agent 调用 `qb_spec_doctor`：
+
+- 有安全 action 和 journal hash：由用户选择后调用 `qb_spec_recover`。
+- `ambiguous`：保留现场，检查版本控制、source、archive 和 journal 后人工处理。
+- 残留 lock：先确认没有仍在运行的合作写操作，再决定后续处理。
+
+### 更新命令没有移动版本
+
+如果 source 固定到 tag 或 commit，这是预期行为。使用新的 ref 重新执行：
+
+```bash
+pi install git:github.com/qiubai-lab/qiubai-spec-pi@<new-tag-or-commit>
+```
+
+如果是本地路径安装，`pi update` 不会替你修改本地 Git checkout；需要自行 `git pull` 并 `/reload`。
 
 ## qiubai-spec v0.6.0 开发基线
 
