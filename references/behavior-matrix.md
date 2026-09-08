@@ -10,7 +10,7 @@
 | duplicate active id | fail closed | fail closed | fail closed | error finding |
 | active/archive conflict | fail closed | fail closed | fail closed | error finding |
 | linked or escaping path | fail closed | fail closed | fail closed | error finding |
-| pending/partial archive | recovery required | recovery required | recovery required | report only; never repair |
+| pending/partial archive | recovery required | recovery required | recovery required | classify safe actions and journal hash; never choose or mutate |
 | caller approval/verification | not evaluated | explicit attestation for promotion | explicit attestation required | not evaluated |
 
 The tools never judge requirement meaning, acceptance sufficiency, user authorization, Directory Map applicability, or long-term context promotion.
@@ -25,7 +25,7 @@ The tools never judge requirement meaning, acceptance sufficiency, user authoriz
 | architecture signal | `checking-architecture-boundaries` | none; semantic decision remains with the agent |
 | critical behavior signal | `protecting-critical-behavior` | none; tests use normal Pi capabilities |
 | implemented change | `updating-directory-map` when triggered, then `verifying-before-completion` | doctor/inspect, then archive after evidence is judged sufficient |
-| conflict/recovery/manual close | `closing-qb-change` | doctor and archive; no force/resume |
+| conflict/recovery/manual close | `closing-qb-change` | doctor classifies; recover executes only a user-selected safe complete/restore; no force/overwrite |
 | durable context candidate | `maintaining-project-context` after explicit approval | none |
 | `/qiubai-init entry` | `initializing-qb-spec` | normal precise file editing after entry authorization |
 | `/qiubai-init bootstrap|adopt` | `establishing-project-foundations` and centralized routing | normal Pi implementation tools |

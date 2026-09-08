@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Value } from "typebox/value";
 import { registerQbSpecTools } from "../extensions/index.ts";
+import { archiveChange } from "../src/archive.ts";
 import { DIRECT_QUEUE } from "../src/operations.ts";
 import { fixture, ID } from "./helpers.ts";
 
@@ -29,7 +30,7 @@ function captureTools(): CapturedTool[] {
   return tools;
 }
 
-test("extension registers only the four approved tools with strict schemas", () => {
+test("extension registers only the five approved tools with strict schemas", () => {
   const tools = captureTools();
   assert.deepEqual(
     tools.map((tool) => tool.name),
@@ -37,6 +38,7 @@ test("extension registers only the four approved tools with strict schemas", () 
       "qb_spec_inspect",
       "qb_spec_transition",
       "qb_spec_archive",
+      "qb_spec_recover",
       "qb_spec_doctor",
     ],
   );
@@ -65,6 +67,51 @@ test("extension registers only the four approved tools with strict schemas", () 
     }),
     false,
   );
+  const recover = tools[3]!;
+  assert.equal(
+    Value.Check(recover.parameters, {
+      changeId: ID,
+      action: "complete",
+      expectedJournalSha256: "a".repeat(64),
+      authorizationDeclared: true,
+    }),
+    true,
+  );
+  assert.equal(
+    Value.Check(recover.parameters, {
+      changeId: ID,
+      action: "force",
+      expectedJournalSha256: "a".repeat(64),
+      authorizationDeclared: true,
+    }),
+    false,
+  );
+});
+
+test("registered doctor exposes actionable recovery hash in model-visible text", async (t) => {
+  const fx = await fixture();
+  t.after(fx.cleanup);
+  await fx.writeDocument();
+  await assert.rejects(() => archiveChange(
+    { projectRoot: fx.root, changeId: ID, verificationConfirmed: true },
+    {
+      withFileMutationQueue: DIRECT_QUEUE,
+      fault(phase) {
+        if (phase === "archive-after-copies") throw new Error("interrupt");
+      },
+    },
+  ), /interrupt/);
+  const tools = captureTools();
+  const doctor = await tools[4]!.execute(
+    "doctor-recovery",
+    { changeId: ID },
+    undefined,
+    undefined,
+    { cwd: fx.root },
+  );
+  assert.match(doctor.content[0]!.text, /state=choice_required/);
+  assert.match(doctor.content[0]!.text, /actions=complete,restore/);
+  assert.match(doctor.content[0]!.text, /journalSha256=[a-f0-9]{64}/);
 });
 
 test("registered inspect and doctor tools return bounded structured results", async (t) => {
@@ -82,7 +129,7 @@ test("registered inspect and doctor tools return bounded structured results", as
   );
   assert.match(inspect.content[0]!.text, /QB-20260908-fixture: active/);
   assert.equal((inspect.details as { changeId: string }).changeId, ID);
-  const doctor = await tools[3]!.execute(
+  const doctor = await tools[4]!.execute(
     "doctor",
     { offset: 0, limit: 1 },
     undefined,

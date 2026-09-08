@@ -108,17 +108,23 @@ package 提供以下 11 个按需加载的 skills：
 - `.qb-pending.json` journal
 - 全部目标写入校验后删除来源
 
-`verificationConfirmed` 只是调用方声明，不是验收证据。验收充分性由 `verifying-before-completion` 根据实际 evidence 判断。工具不会覆盖已有目标，也不会自动恢复 pending/partial archive。
+`verificationConfirmed` 只是调用方声明，不是验收证据。验收充分性由 `verifying-before-completion` 根据实际 evidence 判断。工具不会覆盖已有目标，也不会自行选择恢复动作。
+
+### `qb_spec_recover`
+
+只在 `qb_spec_doctor` 已报告动作机械安全、用户明确选择 `complete` 或 `restore`，且调用方提供完全匹配的 journal SHA-256 时执行恢复。工具在 mutation queues 和根锁内重新分析现场，不支持 force、overwrite、自动 action 或缺失来源重建。
+
+`authorizationDeclared` 只是调用方对用户选择的 attestation，不是独立授权证明。`complete` 保留已校验 archive 并删除尚存的匹配来源；`restore` 仅在所有原来源仍完整时删除已知归档副本和 journal。
 
 ### `qb_spec_doctor`
 
-只读检查 metadata、重复 ID、strict plan、分离文档状态、trace ID、lock、pending journal 和 partial archive。结果使用 `offset`/`limit` 分页；doctor 不删除、修复或迁移任何文件。
+只读检查 metadata、重复 ID、strict plan、分离文档状态、trace ID、lock、pending journal 和 partial archive，并将 journal 现场分类为 `safe_to_complete`、`safe_to_restore`、`choice_required` 或 `ambiguous`。结果使用 `offset`/`limit` 分页；doctor 只报告允许动作和 journal hash，不替用户选择，也不修改文件。
 
 ## 职责边界
 
 - Skills/Agent 决定需求语义、type/tier、规格质量、计划、架构和测试 gate、批准是否覆盖当前范围、验收证据是否充分、Directory Map 是否更新及长期 context 是否提升。
-- Tools 只执行可机械判断的 inspect、transition、archive 和 doctor。
-- `/qiubai-spec` 或 `/qiubai-init` 的调用、文档创建、`authorizationDeclared` 和 `verificationConfirmed` 都不是独立批准或验证证据。
+- Tools 只执行可机械判断的 inspect、transition、archive、recovery analysis/recovery mutation 和 doctor。
+- `/qiubai-spec` 或 `/qiubai-init` 的调用、文档创建、`authorizationDeclared`、`verificationConfirmed` 和 recovery allowed action 都不是独立批准、验证或用户选择证据。
 - Behavior Delta 与归档只产生长期 context 候选；新事实和推断偏好仍需明确批准。
 
 ## 文档根与路径安全
@@ -127,7 +133,9 @@ package 提供以下 11 个按需加载的 skills：
 
 ## 恢复限制
 
-多文件归档不是文件系统级原子事务，也不承诺断电持久性。失败时可能同时保留已校验的 archive 副本、部分 active 来源和 `.qb-pending.json`。此状态必须由 `qb_spec_doctor` 诊断并进入显式恢复路径；不要直接删除 lock/pending、覆盖 archive 或重复强制执行。
+多文件归档和恢复不是文件系统级原子事务，也不承诺断电持久性。失败时可能同时保留已校验的 archive 副本、部分 active 来源和 `.qb-pending.json`。先用 `qb_spec_doctor` 取得 recovery state、allowed actions 和 journal hash；只有用户明确选择且现场仍匹配时才调用 `qb_spec_recover`。`ambiguous` 状态必须人工审查；不要直接删除 lock/pending、覆盖 archive 或强制执行。
+
+首期恢复不处理 legacy metadata normalization，也不会从 archived payload 猜测重建已经删除的原始来源。
 
 锁和 mutation queue 只协调合作的 Pi 文件工具，不能阻止恶意或不合作的外部进程。不要在同一 tool batch 中让 `edit`/`write` 与 qb-spec 写工具修改同一 change。
 

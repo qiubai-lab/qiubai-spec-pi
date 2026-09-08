@@ -8,6 +8,7 @@ qb-spec 的机械文档操作使用本 package 注册的 Pi tools，不探测 Py
 | 更新一个 spec 或独立 plan 的 lifecycle metadata | `qb_spec_transition` |
 | 归档已验证且所有来源均 active 的 change | `qb_spec_archive` |
 | 诊断 metadata、trace、lock、pending 或 partial archive | `qb_spec_doctor` |
+| 执行用户选定且 doctor 证明安全的 pending archive 恢复动作 | `qb_spec_recover` |
 
 `qb_spec_transition` 每次只修改明确指定的 `spec` 或 `plan`，支持同状态刷新和 `draft → approved → active`。批准由 agent 根据现有用户授权判断；`authorizationDeclared` 只是调用方 attestation，不是独立证明。不得因为创建了文档或调用了入口命令就将其设为 true。
 
@@ -18,9 +19,10 @@ qb-spec 的机械文档操作使用本 package 注册的 Pi tools，不探测 Py
 ## Failure And Recovery
 
 - 工具错误带稳定 `QB_*` code。失败后先使用 `qb_spec_doctor` 诊断，不绕过工具以 shell、`edit` 或 `write` 强制重复同一机械操作。
-- 发现 `.qb-pending.json`、残留根锁、部分移动、空目标或 active/archive 冲突时停止自动关闭，转入 `closing-qb-change` 的显式恢复路径。
-- 不直接删除 lock/pending，不覆盖 archive，不自动 resume、force 或批量迁移 legacy 文档。
-- 多文件归档不是文件系统级原子事务，也不承诺断电持久性；失败现场可能同时包含 archive 副本、pending journal 和尚存来源。
+- 发现 `.qb-pending.json`、部分移动或空目标时停止自动关闭，使用 `qb_spec_doctor` 取得 recovery state、allowed actions 和 journal SHA-256，再由用户明确选择 `complete` 或 `restore`；只有 mechanically safe 的动作才交给 `qb_spec_recover`。
+- `qb_spec_recover` 必须使用 doctor 返回的准确 journal hash，并在 mutation queues 和根锁内重新分析。它不支持自动 action、force、overwrite、未知文件删除或缺失来源重建。
+- 残留根锁、active/archive 冲突、`ambiguous` recovery 或 legacy metadata 继续人工诊断；不直接删除 lock/pending，不批量迁移 legacy 文档。
+- 多文件归档和恢复不是文件系统级原子事务，也不承诺断电持久性；失败现场可能同时包含 archive 副本、pending journal 和尚存来源。
 - mutation queue 与 qb-spec 根锁只协调合作的 Pi 文件工具。不要在同一 tool batch 中让 `edit`/`write` 与 qb-spec 写工具修改同一个 change；不合作的外部进程仍属于残余风险。
 
 语义正文继续由 agent 使用 Pi 的普通读取和精确编辑能力维护。工具不得决定 requirement、approval、acceptance、Directory Map 或长期 context。

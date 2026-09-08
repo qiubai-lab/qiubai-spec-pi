@@ -15,7 +15,8 @@ The production extension, workflow skills, and prompt templates do not read or e
 - strict changes require a separate plan; historical split-standard changes remain split
 - each document transitions independently; every source document must be active before archive
 - archive copies and verifies all payloads before deleting sources and retains a pending journal on interruption
-- authorization and verification flags are caller attestations, not proof
+- the Pi adaptation classifies pending journals read-only and can complete or restore only a user-selected action proven safe by matching source/target hashes; ambiguous states remain manual
+- authorization, verification, and recovery-selection flags are caller attestations, not proof
 
 The package also exposes the snapshot's eleven workflow responsibilities through Pi-native skills, with `shaping-requirements/references/workflow-routing.md` as the only default next-action source. `/qiubai-spec` starts ordinary shaping and `/qiubai-init` explicitly selects entry, bootstrap, or adopt behavior; neither command proves approval or verification.
 

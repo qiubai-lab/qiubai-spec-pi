@@ -104,6 +104,59 @@ export interface ArchiveResult {
   verificationNote: "caller-attested; not independent evidence";
 }
 
+export type RecoveryAction = "complete" | "restore";
+export type RecoveryState =
+  | "safe_to_complete"
+  | "safe_to_restore"
+  | "choice_required"
+  | "ambiguous";
+export type RecoveryFileState = "matching" | "missing" | "changed";
+
+export interface RecoveryFileAnalysis {
+  kind: DocumentKind;
+  source: string;
+  target: string;
+  sourceState: RecoveryFileState;
+  targetState: RecoveryFileState;
+}
+
+export interface RecoveryAnalysis {
+  changeId: string;
+  state: RecoveryState;
+  journalPath: string;
+  journalSha256: string;
+  targetDirectory: string;
+  allowedActions: RecoveryAction[];
+  files: RecoveryFileAnalysis[];
+  issues: string[];
+}
+
+export interface RecoverOptions {
+  projectRoot: string;
+  docsRoot?: string;
+  changeId: string;
+  action: RecoveryAction;
+  expectedJournalSha256: string;
+  authorizationDeclared: boolean;
+  dryRun?: boolean;
+  signal?: AbortSignal;
+}
+
+export interface RecoverResult {
+  status:
+    | "completed"
+    | "restored"
+    | "already_completed"
+    | "already_restored"
+    | "dry_run";
+  changeId: string;
+  action: RecoveryAction;
+  path: string;
+  journalSha256: string | null;
+  files: string[];
+  authorizationNote: "caller-attested; not independent evidence";
+}
+
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
 export interface Diagnostic {
@@ -112,6 +165,10 @@ export interface Diagnostic {
   message: string;
   path?: string;
   changeId?: string;
+  recovery?: Pick<
+    RecoveryAnalysis,
+    "state" | "journalSha256" | "allowedActions"
+  >;
 }
 
 export interface DoctorOptions {

@@ -1,5 +1,5 @@
 import { access, lstat, readdir, readFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import {
   CHANGE_ID_PATTERN,
   LOCK_FILE,
@@ -10,6 +10,7 @@ import { listFiles, validateArchivedDocuments } from "./discovery.ts";
 import { QbError, qbError } from "./errors.ts";
 import { parseDocument } from "./frontmatter.ts";
 import { assertSafeExistingPath, resolveProjectPaths } from "./paths.ts";
+import { analyzePendingJournal, findRecoveryJournals } from "./recovery.ts";
 import type {
   Category,
   Diagnostic,
@@ -170,6 +171,37 @@ export async function doctor(options: DoctorOptions): Promise<DoctorResult> {
 
   const findings: Diagnostic[] = [];
   const documents: ParsedDocument[] = [];
+  try {
+    for (const path of await findRecoveryJournals(paths, options.changeId)) {
+      const folderId = basename(dirname(path));
+      const analysis = await analyzePendingJournal(paths, path);
+      if (
+        options.changeId === undefined ||
+        analysis.changeId === options.changeId ||
+        folderId === options.changeId
+      ) {
+        add(findings, {
+          code: "RECOVERY_PENDING",
+          severity: "error",
+          message: `Pending archive is ${analysis.state}; allowed actions: ${analysis.allowedActions.join(", ") || "none"}`,
+          path,
+          changeId: analysis.changeId,
+          recovery: {
+            state: analysis.state,
+            journalSha256: analysis.journalSha256,
+            allowedActions: analysis.allowedActions,
+          },
+        });
+      }
+    }
+  } catch (error) {
+    add(findings, {
+      code: error instanceof QbError ? error.code : "SCAN_FAILED",
+      severity: "error",
+      message: error instanceof Error ? error.message : String(error),
+      path: join(paths.docs, "archive"),
+    });
+  }
   for (const category of ["specs", "plans", "archive"] as const) {
     let files: string[] = [];
     try {
@@ -184,32 +216,7 @@ export async function doctor(options: DoctorOptions): Promise<DoctorResult> {
       continue;
     }
     for (const path of files) {
-      if (basename(path) === PENDING_FILE) {
-        let changeId: string | undefined;
-        try {
-          const parsed = JSON.parse(await readFile(path, "utf8")) as {
-            id?: unknown;
-          };
-          if (typeof parsed.id === "string") changeId = parsed.id;
-        } catch {
-          // The malformed journal is itself the finding.
-        }
-        if (
-          options.changeId === undefined ||
-          changeId === options.changeId ||
-          path.includes(options.changeId)
-        ) {
-          add(findings, {
-            code: "RECOVERY_PENDING",
-            severity: "error",
-            message:
-              "Pending archive requires explicit diagnosis; it was not modified",
-            path,
-            ...(changeId ? { changeId } : {}),
-          });
-        }
-        continue;
-      }
+      if (basename(path) === PENDING_FILE) continue;
       try {
         const kind =
           category === "plans" || basename(path) === "plan.md"

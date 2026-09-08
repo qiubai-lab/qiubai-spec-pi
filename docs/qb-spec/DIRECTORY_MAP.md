@@ -15,7 +15,7 @@
 ## Important Files
 
 - `package.json`：Pi package 资源和 npm 发布白名单入口；不表达详细 workflow 规则。
-- `extensions/index.ts`：四个 `qb_spec_*` tools 的唯一注册入口；不注册 `/qiubai-spec` 或 `/qiubai-init` commands。
+- `extensions/index.ts`：五个 `qb_spec_*` tools 的唯一注册入口；不注册 `/qiubai-spec` 或 `/qiubai-init` commands。
 - `skills/shaping-requirements/references/workflow-routing.md`：qb-spec 默认 next-action 顺序的唯一事实源。
 - `prompts/qiubai-spec.md`：普通开发 Prompt Template 入口。
 - `prompts/qiubai-init.md`：entry/bootstrap/adopt 初始化 Prompt Template 入口。
@@ -26,7 +26,8 @@
 - `src/discovery.ts`、`src/inspect.ts`：定位并验证持久化 change 形态；不修改文件。
 - `src/transition.ts`：执行单文档受约束 lifecycle transition；不判断授权真实性。
 - `src/archive.ts`：执行带 queue、lock、hash 和 journal 的归档事务；不判断 acceptance evidence。
-- `src/doctor.ts`：执行只读机械诊断；不做规格语义审查或自动恢复。
+- `src/recovery.ts`：分析 pending journal，并只执行用户选定且 hash 可证明安全的 complete/restore；不选择动作、不 force、不重建缺失来源。
+- `src/doctor.ts`：执行只读机械诊断和 recovery classification；不做规格语义审查、不替用户选择或执行恢复。
 - `skills/*/SKILL.md`：分别维护需求、审查、计划、架构、测试、验证、关闭、context、初始化和 foundations 职责；默认顺序统一回连 workflow routing。
 - `tests/workflow-resources.test.ts`：验证 Pi discovery、资源链接、集中路由和 Prompt Template 展开契约。
 

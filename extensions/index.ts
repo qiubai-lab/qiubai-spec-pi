@@ -6,6 +6,7 @@ import { archiveChange } from "../src/archive.ts";
 import { doctor } from "../src/doctor.ts";
 import { asQbError, qbError } from "../src/errors.ts";
 import { inspectChange } from "../src/inspect.ts";
+import { recoverChange } from "../src/recovery.ts";
 import { boundDoctorResult, boundedText } from "../src/result.ts";
 import { transitionChange } from "../src/transition.ts";
 import type { MutationQueue, ServiceDependencies } from "../src/types.ts";
@@ -37,6 +38,15 @@ const archiveSchema = Type.Object({
   dryRun: Type.Optional(Type.Boolean()),
 }, { additionalProperties: false });
 
+const recoverSchema = Type.Object({
+  ...common,
+  changeId: Type.String({ description: "Stable QB-YYYYMMDD-topic change id" }),
+  action: StringEnum(["complete", "restore"] as const, { description: "User-selected recovery action already reported safe by qb_spec_doctor" }),
+  expectedJournalSha256: Type.String({ pattern: "^[a-f0-9]{64}$", description: "Exact journal SHA-256 reported by qb_spec_doctor" }),
+  authorizationDeclared: Type.Boolean({ description: "Caller attests the user selected this recovery action; not independent evidence" }),
+  dryRun: Type.Optional(Type.Boolean()),
+}, { additionalProperties: false });
+
 const doctorSchema = Type.Object({
   ...common,
   changeId: Type.Optional(Type.String({ description: "Optional change id filter" })),
@@ -47,6 +57,7 @@ const doctorSchema = Type.Object({
 type InspectInput = Static<typeof inspectSchema>;
 type TransitionInput = Static<typeof transitionSchema>;
 type ArchiveInput = Static<typeof archiveSchema>;
+type RecoverInput = Static<typeof recoverSchema>;
 type DoctorInput = Static<typeof doctorSchema>;
 
 async function toolOperation<T>(operation: () => Promise<T>): Promise<T> {
@@ -120,6 +131,26 @@ export function registerQbSpecTools(pi: ExtensionAPI, queue?: MutationQueue): vo
   });
 
   pi.registerTool({
+    name: "qb_spec_recover",
+    label: "Recover qb-spec Archive",
+    description: "Complete or restore a pending archive only when the selected action is mechanically safe and the expected journal hash still matches. Authorization is caller-attested; no force or overwrite.",
+    promptSnippet: "Safely execute a user-selected recovery action for a diagnosed pending archive",
+    promptGuidelines: [
+      "Call qb_spec_doctor before qb_spec_recover and use only an allowed recovery action with its exact journal SHA-256.",
+      "Use qb_spec_recover only after the user selects complete or restore; authorizationDeclared is an attestation, not proof.",
+      "Do not call qb_spec_recover in parallel with edit, write, qb_spec_transition, or qb_spec_archive for the same change.",
+    ],
+    parameters: recoverSchema,
+    async execute(_id, params: RecoverInput, signal, _update, ctx) {
+      const result = await toolOperation(() => recoverChange({ projectRoot: ctx.cwd, ...params, ...(signal ? { signal } : {}) }, dependencies));
+      return {
+        content: [{ type: "text", text: `${result.status}: ${result.action} ${result.path}\nAuthorization is caller-attested; not independent evidence.` }],
+        details: result,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "qb_spec_doctor",
     label: "Diagnose qb-spec Documents",
     description: "Read-only diagnosis for qb-spec metadata, lifecycle, trace links, locks, pending journals, and partial archives. Paginated and bounded to 50KB/2000 lines.",
@@ -132,7 +163,7 @@ export function registerQbSpecTools(pi: ExtensionAPI, queue?: MutationQueue): vo
         ? ["qb-spec doctor: no mechanical findings"]
         : [
             `qb-spec doctor: ${result.total} finding(s), showing ${result.offset}-${result.offset + result.findings.length}`,
-            ...result.findings.map((finding) => `${finding.severity} ${finding.code}: ${finding.message}${finding.path ? ` (${finding.path})` : ""}`),
+            ...result.findings.map((finding) => `${finding.severity} ${finding.code}: ${finding.message}${finding.path ? ` (${finding.path})` : ""}${finding.recovery ? ` [state=${finding.recovery.state} actions=${finding.recovery.allowedActions.join(",") || "none"} journalSha256=${finding.recovery.journalSha256}]` : ""}`),
           ];
       return { content: [{ type: "text", text: boundedText(lines) }], details: result };
     },
