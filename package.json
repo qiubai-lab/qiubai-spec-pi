@@ -2,7 +2,7 @@
   "name": "qiubai-spec-pi",
   "version": "0.1.0",
   "private": true,
-  "description": "Pi-native TypeScript tools for safe qb-spec document inspection, lifecycle transitions, archiving, and diagnostics.",
+  "description": "Pi-native qiubai-spec workflow skills, prompt entrypoints, and safe document lifecycle tools.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,6 +16,8 @@
   "files": [
     "extensions",
     "src",
+    "skills",
+    "prompts",
     "references",
     "README.md"
   ],
@@ -25,6 +27,12 @@
   "pi": {
     "extensions": [
       "./extensions/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
     ]
   },
   "scripts": {

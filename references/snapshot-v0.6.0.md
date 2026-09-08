@@ -2,7 +2,7 @@
 
 This package was implemented against the frozen `upstream/qiubai-spec-v0.6.0/` snapshot dated 2026-09-08.
 
-The production extension does not read or execute that plugin. This document records the mechanical contract copied into independent TypeScript tests:
+The production extension, workflow skills, and prompt templates do not read or execute that plugin. Production skills are independently packaged Pi resources adapted from the reviewed snapshot; this document records the lifecycle contract copied into independent tests:
 
 - change id: `QB-YYYYMMDD-topic`
 - types: `feature`, `bugfix`, `design`
@@ -17,4 +17,6 @@ The production extension does not read or execute that plugin. This document rec
 - archive copies and verifies all payloads before deleting sources and retains a pending journal on interruption
 - authorization and verification flags are caller attestations, not proof
 
-Development-only snapshot tests validate the vendored baseline contract. Baseline upgrades require explicit review; golden fixtures remain the standalone runtime contract.
+The package also exposes the snapshot's eleven workflow responsibilities through Pi-native skills, with `shaping-requirements/references/workflow-routing.md` as the only default next-action source. `/qiubai-spec` starts ordinary shaping and `/qiubai-init` explicitly selects entry, bootstrap, or adopt behavior; neither command proves approval or verification.
+
+Development-only snapshot tests validate the vendored baseline contract. Baseline upgrades require explicit review; production skills, prompt contracts, and golden mechanical fixtures remain the standalone runtime contract.

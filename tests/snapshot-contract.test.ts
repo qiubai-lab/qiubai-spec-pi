@@ -32,7 +32,7 @@ async function sourceFiles(directory: string): Promise<string[]> {
   return result;
 }
 
-test("standalone manifest exposes only the extension", async () => {
+test("standalone manifest exposes the extension and workflow resources", async () => {
   const manifest = JSON.parse(
     await readFile(join(packageRoot, "package.json"), "utf8"),
   ) as {
@@ -40,8 +40,11 @@ test("standalone manifest exposes only the extension", async () => {
     pi: Record<string, unknown>;
   };
   assert.equal(manifest.name, "qiubai-spec-pi");
-  assert.deepEqual(manifest.pi, { extensions: ["./extensions/index.ts"] });
-  assert.equal("skills" in manifest.pi, false);
+  assert.deepEqual(manifest.pi, {
+    extensions: ["./extensions/index.ts"],
+    skills: ["./skills"],
+    prompts: ["./prompts"],
+  });
 });
 
 test("production TypeScript has no Python or source-plugin runtime dependency", async () => {
