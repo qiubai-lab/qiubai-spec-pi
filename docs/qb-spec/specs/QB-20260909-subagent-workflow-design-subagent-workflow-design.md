@@ -420,9 +420,9 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 - **REQ-005 — Evidence contract:** 所有审查和验证结果必须结构化并关联具体路径、检查项、命令、退出码或原始 artifact；agent 成功摘要不是完成证据。
 - **REQ-006 — Bounded output:** 返回主会话的内容必须满足 50KB/2000 行限制，截断时保留可定位的完整 artifact，并明确标记截断。
 - **REQ-007 — Sequential execution:** 当前 proxy 一次最多运行一个 subagent，不提供 parallel、chain、嵌套 dispatch 或共享 child state。
-- **REQ-008 — Trust boundary:** 默认只加载 package-owned role profiles；项目级 profiles 只有在项目受信任且用户显式启用后才可使用。
-- **REQ-009 — Failure semantics:** unknown role、越权 capability、无效 schema、非零退出、超时、取消和子进程/session 异常必须可区分并 fail closed；chain 在首个失败处停止。
-- **REQ-010 — Backend compatibility:** SDK 与可选 subprocess backend 如同时存在，必须遵循相同的 dispatch/result、安全和 usage accounting 契约，不得因 backend 改变 workflow 语义。
+- **REQ-008 — Trust boundary:** 默认只加载 package-owned task profiles；项目级 profiles 不属于当前范围，未来只有在项目受信任且用户显式启用后才可使用。
+- **REQ-009 — Failure semantics:** unknown task kind、越权 capability、无效 schema、非零退出、超时、取消和 child session 异常必须可区分并 fail closed；失败后不得启动另一个 child 或推进当前 stage。
+- **REQ-010 — Backend compatibility:** 首期只支持 SDK in-process backend；未来若增加 subprocess backend，必须遵循相同的 dispatch/result、安全和 usage accounting 契约，不得改变 workflow 语义。
 - **REQ-011 — Fixed lightweight scope:** 当前只研究 `context_digest`、`diff_summary`、`doc_fact_scan`、`test_report` 和可选 `trace_scan`；reviewer、planner、architect、test designer、writer 和 implementer 均不属于代理能力。
 - **REQ-012 — Existing behavior preservation:** 没有可用 subagent backend 或 delegation 被禁用时，现有 11 个 skills、两个 prompt 入口和五个 `qb_spec_*` tools 必须继续按当前 inline workflow 工作。
 - **REQ-013 — Reference traceability:** 技术调研必须明确记录 Superpowers 的参考流程，以及 qiubai-spec 对其采用、调整、不采用和待验证假设，且不得把外部流程变成本 package 的 next-action 事实源。
@@ -436,10 +436,10 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 
 - **AC-001**（REQ-001, REQ-002）：设计评审可逐项确认所有不可委派的语义/lifecycle 决策仍由主 agent拥有，且 subagent result 不触发 metadata transition 或 archive。
 - **AC-002**（REQ-003, REQ-004, REQ-008）：实现设计能够列出每个 task kind 的工具 allowlist，并证明子 session 不加载 dispatch tool、mutation tools 或未获授权的项目 profile。
-- **AC-003**（REQ-005, REQ-006）：每类首期 role 都有机器可校验 result schema；超过限制的模拟输出返回截断标记和完整 artifact 路径，主返回不超过 Pi 限制。
+- **AC-003**（REQ-005, REQ-006）：每个首期 task kind 都有机器可校验 result schema；超过限制的模拟输出返回截断标记和完整 artifact 路径，主返回不超过 Pi 限制。
 - **AC-004**（REQ-007）：proxy schema 和运行状态不包含 tasks array、chain 或并发参数；第二个调用在已有 child 运行时被拒绝或排队，且 child 无法再次 dispatch。
-- **AC-005**（REQ-009）：unknown role、越权、schema error、command failure、timeout 和 abort 均有不同错误码；顺序链在首个失败后不执行后续步骤。
-- **AC-006**（REQ-010）：同一 contract fixture 在每个受支持 backend 上产生等价的状态、证据字段、截断和 usage 语义。
+- **AC-005**（REQ-009）：unknown task kind、越权、schema error、command failure、timeout 和 abort 均有不同错误码；失败后不启动新的 child，也不推进当前 stage。
+- **AC-006**（REQ-010）：SDK backend 满足完整 contract；未来 backend 只有通过相同 fixture 的状态、证据字段、截断和 usage 等价测试后才可加入。
 - **AC-007**（REQ-011）：task-kind allowlist 只包含固定轻量任务，不包含 reviewer/planner/architect/test designer/writer/implementer 或任何写能力。
 - **AC-008**（REQ-012）：关闭 delegation 或模拟 backend unavailable 后，现有 workflow resource tests、机械工具 tests、typecheck 和 package smoke test 全部通过。
 - **AC-009**（REQ-001, REQ-005, REQ-012）：用 context digest、diff summary、test report、doc fact scan 和 trace scan 场景验证 subagent 只提供摘要/artifact/evidence，主 agent仍按 `workflow-routing.md` 选择唯一 next action。
@@ -474,8 +474,23 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 
 - subagent 是优化上下文隔离和独立视角的执行机制，而不是新的 workflow authority。
 - 当前价值通过固定轻量任务的低成本执行与上下文隔离验证，不承担多 Agent 协作、并行或写入风险。
-- package 可以新增 package-owned `agents/` 资源，但具体 Pi package discovery 方式须在实现 change 中用真实临时加载确认。
+- package 可以新增 package-owned task profile 资源，并由 adapter 显式加载；不依赖 Pi package manifest 的 agent 自动发现。
 
-## Open Questions
+## Open Questions Before Implementation
 
-无阻塞性产品问题。是否在后续实现中只支持 SDK backend，还是同时支持 subprocess fallback，应由实现阶段的兼容性 spike 依据目标 Pi 版本实测决定，不影响本设计的上层契约。
+### Product/Workflow Decisions
+
+1. **Model selection persistence scope**：当前设计为 session-scoped override。推荐首期维持该范围，不写全局或项目配置；跨 session persistence 后续单独设计。
+2. **No-selection behavior**：尚未明确用户未选择模型时是否自动挑选 economy model。推荐首期不自动猜测，保持 delegation disabled/inline fallback，直到用户通过 `/qb-subagent-model` 选择或存在显式 package default。
+3. **MVP task kinds**：当前候选有五类。推荐首期只实现 `context_digest`、`doc_fact_scan`、`test_report`；`diff_summary` 先由 context digest 覆盖，`trace_scan` 优先保留为确定性工具。
+4. **Activation policy**：推荐模型已配置后由 skills 根据 dispatch thresholds 自动调用，不在每次轻量任务前询问；用户可通过 reset 禁用 session override。
+
+### Engineering Contracts To Finalize In The Implementation Change
+
+- `test_report` command 来源与 allowlist：推荐只能接收当前 approved plan/项目既有验证入口中的 executable + argv，禁止 shell string。
+- artifact 生命周期：推荐使用 mode 0600 的临时目录，保留到 parent session shutdown；需要成为 acceptance evidence 的摘要/hash 由主 agent写入 change，原始临时日志不自动归档。
+- 每个 task kind 的 TypeBox request/result schema、默认 timeout、max turns、token/output budget 和低置信判定。
+- model capability gate：除可用认证外，定义最小 context window、工具调用能力和 structured-output 失败处理。
+- command collision 和无 UI 行为：确认 `/qb-subagent-model` 被同名 extension 占用时的诊断，以及 print/JSON/RPC 的稳定文本/结构化返回。
+
+以上产品决定会改变默认行为或首期范围，应在创建后续实现 change 前明确；工程项可在同一实现 change 的 plan 中定稿并接受测试，不需要改动本次集中 workflow 规则。

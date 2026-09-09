@@ -19,7 +19,7 @@ Spec: `docs/qb-spec/specs/QB-20260909-subagent-workflow-design-subagent-workflow
 - [x] **TASK-003** [REQ-005, REQ-006, REQ-009, REQ-010, AC-003, AC-005, AC-006] 定义 dispatch/result、证据、输出截断、错误分类、取消和 backend 等价契约。
 - [x] **TASK-004** [REQ-007, REQ-011, AC-004, AC-007] 定义首期只读角色、顺序/并行规则及 writer/implementer 的后续 change 边界。
 - [x] **TASK-005** [REQ-012, AC-008, AC-009] 定义 inline fallback 和覆盖 shaping/review、plan review、test evidence、doc audit 的兼容验收。
-- [ ] **TASK-006** [depends: TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013] [REQ-001, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, AC-001, AC-007, AC-009, AC-010, AC-011, AC-012, AC-013, AC-014, AC-015] 取得用户对推荐 Option C、固定轻量任务范围、sequential delegation topology、成本阈值、Pi-native backend、session-scoped model picker 与安全缺口处理及“本 change 仅完成技术调研与设计”的明确批准。
+- [ ] **TASK-006** [depends: TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013, TASK-014] [REQ-001, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, AC-001, AC-007, AC-009, AC-010, AC-011, AC-012, AC-013, AC-014, AC-015] 取得用户对推荐 Option C、固定轻量任务范围、sequential delegation topology、成本阈值、Pi-native backend、session-scoped model picker 与安全缺口处理及“本 change 仅完成技术调研与设计”的明确批准。
 - [ ] **TASK-007** [depends: TASK-006] [REQ-001, REQ-002, REQ-012, AC-001, AC-009] 将 spec 和 plan 转为 approved/active，执行设计验收并记录证据；本 change 不修改 runtime。
 - [x] **TASK-008** [REQ-001, REQ-002, REQ-005, REQ-013, AC-001, AC-010] 将 Superpowers 的 fresh implementer、双维 task review、修复复审、whole-branch review 和 fresh verification 模型落盘为参考，并记录 qiubai-spec 的采用、调整和排除项。
 - [x] **TASK-009** [REQ-001, REQ-007, REQ-014, AC-004, AC-011] 比较纯并行、纯串行和主 pipeline + 阶段内 fan-out/fan-in，形成初步 topology 调研。
@@ -27,12 +27,13 @@ Spec: `docs/qb-spec/specs/QB-20260909-subagent-workflow-design-subagent-workflow
 - [x] **TASK-011** [depends: TASK-010] [REQ-015, REQ-016, AC-012, AC-013] 建立各 task kind 的相对成本区间、端到端成本公式、初始 dispatch thresholds，并与主流 specialist/implementer/parallel subagent 模式比较优劣。
 - [x] **TASK-012** [depends: TASK-010] [REQ-003, REQ-004, REQ-005, REQ-006, REQ-009, REQ-010, REQ-017, AC-002, AC-003, AC-005, AC-006, AC-014] 对 Pi 0.85.1 SDK、extension/TUI 接口和官方 subagent 示例做可行性调研，运行不调用模型的资源隔离、tool allowlist 和 economy model availability spike，并记录路径/命令安全缺口。
 - [x] **TASK-013** [depends: TASK-012] [REQ-015, REQ-018, AC-012, AC-015] 设计 `/qb-subagent-model` 的 TUI picker、显式参数、reset、session entry 持久化、无 UI 行为和精确模型校验；模型来源与 Pi `/model` 同源且不改变主模型。
+- [ ] **TASK-014** [depends: TASK-013] [REQ-011, REQ-014, REQ-015, REQ-018, AC-007, AC-011, AC-012, AC-015] 在后续实现 change 前确认 model persistence、无选择时行为、首期 task-kind allowlist 和自动 activation policy；实现 plan 再定稿 runner、artifact、budget、capability 与 command-collision 契约。
 
 ## Architecture Gate
 
 - Boundary decision：通过。workflow 语义和 next-action 留在 `skills/`；runtime adapter 仅做机械 dispatch；现有 `qb_spec_*` 继续独占生命周期 mutation；主 agent保留授权解释与验收充分性。
-- Placement：未来实现采用 `extensions/` 薄注册、`src/subagent/` 机械执行、package-owned role profiles 的分离；不得把角色选择和 routing 条件写入 adapter。
-- Model separation：dispatch request/result DTO 不复用 qb-spec spec/plan frontmatter model；agent profile 是配置，不是 lifecycle 文档。
+- Placement：未来实现采用 `extensions/` 薄注册、`src/subagent/` 机械执行、package-owned task profiles 的分离；不得把 workflow routing 条件写入 adapter。
+- Model separation：dispatch request/result DTO 不复用 qb-spec spec/plan frontmatter model；task profile 和 session model override 是配置，不是 lifecycle 文档。
 - Tradeoff：当前不引入 reviewer/planner/writer/implementer、项目级 profiles、通用 Bash、parallel 或 chain；牺牲通用性换取低成本、低污染和小实现面。
 
 ## Verification
@@ -41,8 +42,8 @@ Spec: `docs/qb-spec/specs/QB-20260909-subagent-workflow-design-subagent-workflow
 - [ ] **VER-002** [AC-002] 审查每个固定 task kind 均映射到最小 capability set，且设计明确禁用 dispatch、mutation tools、通用 Bash 和默认项目 profiles。
 - [ ] **VER-003** [AC-003] 审查 handoff/result schema 包含 evidence、exit code、artifact、truncation、usage 和 touched paths，并明确 50KB/2000 行上限。
 - [ ] **VER-004** [AC-004] 检查 public contract 不接受 tasks array、chain、并发参数或嵌套 dispatch；任一时刻只运行一个 child session。
-- [ ] **VER-005** [AC-005] 走查 unknown role、越权、schema error、command failure、timeout、abort 的不同失败状态和 chain stop 规则。
-- [ ] **VER-006** [AC-006] 确认 backend 差异被封装在 adapter 后，SDK/subprocess 共用一个请求、结果和安全契约；具体 backend 支持集留给后续 spike。
+- [ ] **VER-005** [AC-005] 走查 unknown task kind、越权、schema error、command failure、timeout、abort 的不同失败状态，确认失败后不启动新 child 或推进 stage。
+- [ ] **VER-006** [AC-006] 确认首期仅支持 SDK backend；未来 backend 需通过同一 contract fixture 后才能加入。
 - [ ] **VER-007** [AC-007] 检查首期 scope 只包含固定轻量 task kinds，不存在 reviewer/planner/writer/implementer 或任意文件写能力。
 - [ ] **VER-008** [AC-008] 确认本 design change 的 git diff 仅包含 qb-spec 设计制品；无需运行 runtime tests。后续实现必须执行仓库规定的 `npm ci`、`npm run typecheck`、`npm test`、`npm pack --dry-run --json` 和 Pi 临时加载。
 - [ ] **VER-009** [AC-009] 逐条走查 context digest、diff summary、test report、doc fact scan 和 trace scan，确认 subagent 只返回摘要/证据，唯一 next action 仍由 `workflow-routing.md` 和主 agent解析。
