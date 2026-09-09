@@ -9,6 +9,7 @@ import { inspectChange } from "../src/inspect.ts";
 import { recoverChange } from "../src/recovery.ts";
 import { boundDoctorResult, boundedText } from "../src/result.ts";
 import { transitionChange } from "../src/transition.ts";
+import { registerQbSubagent } from "../src/subagent/extension.ts";
 import type { MutationQueue, ServiceDependencies } from "../src/types.ts";
 
 const common = {
@@ -170,6 +171,9 @@ export function registerQbSpecTools(pi: ExtensionAPI, queue?: MutationQueue): vo
   });
 }
 
+export { registerQbSubagent } from "../src/subagent/extension.ts";
+
 export default function qiubaiSpecPi(pi: ExtensionAPI): void {
   registerQbSpecTools(pi);
+  registerQbSubagent(pi);
 }

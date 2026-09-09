@@ -22,6 +22,10 @@ description: Verify implementation at the qb-spec workflow tier, report acceptan
 
 手工验证和代码阅读只能补充，不能替代关键自动化证据。
 
+## Lightweight Test Reporting
+
+仅当当前 session 已显式选择 subagent 模型、验证命令已经由当前 approved plan 或项目入口确定，且预期日志较长时，可将一个结构化 `test_report` 交给 `qb_subagent_dispatch`，并仅对已由该 plan/入口选定的精确 argv 设置 `authorizationDeclared: true`；该字段只是调用方 attestation。短命令直接运行；不得把 subagent 的 `completed`、摘要或模型判断当作验收充分性证明。主 agent必须核对 command/cwd/exit code、所需 fresh evidence，并独占 completion/archive 判断。
+
 ## Verification Protocol
 
 1. 从 change spec 读取 `tier: quick | standard | strict`；没有 tier 时按实际风险选择，并在落盘 artifact 中补齐，不维护第二套 plan level。

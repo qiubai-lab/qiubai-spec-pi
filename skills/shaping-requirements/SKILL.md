@@ -55,6 +55,10 @@ standard 在 shaping 结束前检查：目标与非目标清楚、`REQ-*` 与 `A
 
 只有检查发现会改变范围或验收的歧义、用户明确要求，或 tier 为 strict 时，才使用 `reviewing-spec-quality`。不得仅因 spec 已落盘就增加一次独立审查。
 
+## Lightweight Delegation
+
+仅当当前 session 已通过 `/qb-subagent-model` 显式选择模型，且预计需要读取多份材料或超过约 4k source tokens 时，可把 `context_digest` 或 `doc_fact_scan` 作为单个只读任务交给 `qb_subagent_dispatch`。单文件短读取、需求/验收判断、方案比较和任何 lifecycle 决策保持 inline。subagent 摘要只作为带路径证据的输入；当前 skill 仍负责 scope、type/tier、澄清和唯一 next action。
+
 ## Routing
 
 所有 next action 遵守 [references/workflow-routing.md](references/workflow-routing.md)。其他 skill 只报告自己的结果和触发信号，不另建一套默认顺序。

@@ -52,7 +52,10 @@ function truncateUtf8(value: string, maxBytes: number): string {
   return points.slice(0, low).join("");
 }
 
-export function boundedText(lines: string[]): string {
+export function boundedText(
+  lines: string[],
+  notice = "… output truncated; request the next doctor page.",
+): string {
   const complete = lines.join("\n");
   if (
     lines.length <= MAX_RESULT_LINES &&
@@ -60,7 +63,6 @@ export function boundedText(lines: string[]): string {
   )
     return complete;
 
-  const notice = "… output truncated; request the next doctor page.";
   const noticeBytes = Buffer.byteLength(`\n${notice}`, "utf8");
   const contentBudget = MAX_RESULT_BYTES - noticeBytes;
   const selected = lines.slice(0, Math.max(0, MAX_RESULT_LINES - 1));

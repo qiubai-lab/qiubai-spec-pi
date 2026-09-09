@@ -1,6 +1,6 @@
 # qiubai-spec-pi
 
-独立的 Pi package，提供 qiubai-spec 的 11 个渐进披露 workflow skills、两个常用 Prompt Template 入口，以及 TypeScript 实现的安全文档检查、生命周期更新、归档和诊断工具。
+独立的 Pi package，提供 qiubai-spec 的 11 个渐进披露 workflow skills、两个常用 Prompt Template 入口、安全文档 lifecycle tools，以及可选的轻量只读 subagent proxy。
 
 实现基于仓库内冻结的 `qiubai-spec` v0.6.0 开发基线。生产 package 自带独立 skills/references，不读取或执行 `upstream/`，也不需要 Python。
 
@@ -92,7 +92,10 @@ pi list
 ```text
 /qiubai-spec
 /qiubai-init
+/qb-subagent-model
 ```
+
+`/qb-subagent-model` 是 extension command；另外会注册模型可调用的 `qb_subagent_dispatch` tool。未显式选择 subagent 模型时 delegation 保持禁用，现有 inline workflow 不变。
 
 启用 Pi skill commands 时，还可以看到 11 个 `/skill:<name>` 命令。若 skill commands 被隐藏，可在 `/settings` 中启用，或在 settings 中设置：
 
@@ -237,7 +240,26 @@ package 提供以下 11 个按需加载的 skills：
 
 `skills/shaping-requirements/references/workflow-routing.md` 是 next-action 顺序的唯一事实源。Pi 启动时只加载 skill name/description；完整说明和 references 由 Agent 按需读取。
 
-## Tools
+## Lightweight Subagent
+
+首期只支持顺序、单任务、无编辑的 `context_digest`、`doc_fact_scan` 和 `test_report`。它不承担规划、审查结论、架构决策、验收充分性或 lifecycle 操作。
+
+```text
+/qb-subagent-model                       # TUI 选择当前 session 的 child model
+/qb-subagent-model provider/model-id     # 精确选择
+/qb-subagent-model status
+/qb-subagent-model reset                 # 禁用 delegation
+```
+
+候选模型来自 Pi `/model` 同源的 scoped/已认证可用目录；选择只写入当前 Pi session 的非上下文 entry，不改变主模型，也不写全局或项目 settings。模型缺失或不可用时不会自动继承、升级或替换，而是让主 Agent 继续 inline。
+
+`qb_subagent_dispatch` 只接受固定 task schema 和项目内相对路径。child 使用 in-memory session、package-owned prompt、受限 custom read/search tools；`test_report` 使用结构化 executable/argv、`shell: false` 的专用 runner，并要求调用方声明该精确命令已由 approved plan/项目验证入口选定。该声明不是独立授权或验收证据。路径遍历、绝对路径、symlink/alias、任意 Bash、写工具、dispatch/lifecycle tools 均被拒绝。完整长日志写入 mode-0600 临时 artifact，并在 parent session shutdown 时清理。
+
+### `qb_subagent_dispatch`
+
+仅供 Agent 在相关 skill 明确识别到高容量机械任务后调用。结果包含模型、耗时、usage、摘要、evidence 和 artifact metadata，但 `completed` 不等于通过验收。短读取、单个机械命令和预计低于约 4k source tokens 的工作保持 inline。
+
+## Lifecycle Tools
 
 ### `qb_spec_inspect`
 
@@ -279,7 +301,7 @@ package 提供以下 11 个按需加载的 skills：
 ## 职责边界
 
 - Skills/Agent 决定需求语义、type/tier、规格质量、计划、架构和测试 gate、批准是否覆盖当前范围、验收证据是否充分、Directory Map 是否更新及长期 context 是否提升。
-- Tools 只执行可机械判断的 inspect、transition、archive、recovery analysis/recovery mutation 和 doctor。
+- Tools 只执行可机械判断的 inspect、transition、archive、recovery analysis/recovery mutation、doctor，以及受限的 lightweight evidence collection。
 - `/qiubai-spec` 或 `/qiubai-init` 的调用、文档创建、`authorizationDeclared`、`verificationConfirmed` 和 recovery allowed action 都不是独立批准、验证或用户选择证据。
 - Behavior Delta 与归档只产生长期 context 候选；新事实和推断偏好仍需明确批准。
 

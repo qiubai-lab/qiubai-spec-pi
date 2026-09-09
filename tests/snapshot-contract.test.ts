@@ -47,18 +47,18 @@ test("standalone manifest exposes the extension and workflow resources", async (
   });
 });
 
-test("production TypeScript has no Python or source-plugin runtime dependency", async () => {
+test("production TypeScript has no legacy Python/plugin runtime and child_process is confined to the verification runner", async () => {
   const files = [
     ...(await sourceFiles(join(packageRoot, "src"))),
     ...(await sourceFiles(join(packageRoot, "extensions"))),
   ];
   for (const path of files) {
     const source = await readFile(path, "utf8");
-    assert.doesNotMatch(
-      source,
-      /node:child_process|spawn\s*\(|execFile\s*\(|qb_change\.py|plugins[\\/]qiubai-spec[\\/]/,
-      relative(packageRoot, path),
-    );
+    assert.doesNotMatch(source, /qb_change\.py|plugins[\\/]qiubai-spec[\\/]/, relative(packageRoot, path));
+    if (/node:child_process|spawn\s*\(|execFile\s*\(/.test(source)) {
+      assert.equal(relative(packageRoot, path), "src/subagent/runner.ts");
+      assert.match(source, /shell:\s*false/);
+    }
   }
 });
 

@@ -41,7 +41,7 @@ test("archive moves a combined document, preserves body, and is idempotent", asy
   const source = await fx.writeDocument({ tier: "quick" });
   const before = await readFile(source);
   const result = await archiveChange(
-    { projectRoot: fx.root, changeId: ID, verificationConfirmed: true },
+    { projectRoot: fx.root, changeId: ID, verificationConfirmed: true, date: "2026-09-08" },
     direct,
   );
   assert.equal(result.status, "archived");

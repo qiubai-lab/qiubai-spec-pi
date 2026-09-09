@@ -2,7 +2,7 @@
 id: QB-20260909-subagent-workflow-design
 type: design
 tier: strict
-status: draft
+status: archived
 created: 2026-09-09
 updated: 2026-09-09
 supersedes: []
@@ -50,10 +50,10 @@ supersedes: []
 | Workflow activity | Delegation | Fixed lightweight task | Required parent/orchestrator gate |
 | --- | --- | --- | --- |
 | 按给定范围定位代码/文档/context 并压缩摘要 | 推荐 | `context_digest` | 主 agent决定读取范围、相关性和是否需要原文 |
-| 对既定 diff 生成文件分类和文档影响候选 | 推荐 | `diff_summary` | 主 agent决定是否触发 Directory Map/context/docs 工作 |
+| 对既定 diff 生成文件分类和文档影响候选 | 后续候选 | `diff_summary` | 首期由 `context_digest` 覆盖，取得收益证据后再独立引入 |
 | 核验文档中的路径、命令、链接或符号是否存在 | 推荐 | `doc_fact_scan` | 只接受事实证据，不让 subagent决定文档语义 |
 | 运行主 agent已选定的固定验证命令并压缩日志 | 推荐 | `test_report` | 主 agent检查退出码、失败数和必要原始日志，决定验收充分性 |
-| 机械提取 REQ/AC/TASK/VER 引用与缺失候选 | 条件推荐 | `trace_scan` | 主 agent执行语义完整性和冲突审查 |
+| 机械提取 REQ/AC/TASK/VER 引用与缺失候选 | 不作为 subagent 首期任务 | `trace_scan` | 优先使用确定性工具，主 agent执行语义完整性和冲突审查 |
 | 规格质量、需求取舍、type/tier 和澄清 | 不委派 | 无 | `shaping-requirements` / review skill 由主 agent执行 |
 | plan 编写、依赖设计和任务拆解 | 不委派 | 无 | 主 agent保留规划责任 |
 | 架构决策、测试策略和风险 gate | 不委派 | 无 | 对应 skills 与主 agent作决定 |
@@ -349,7 +349,7 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 /qb-subagent-model                       # TUI 打开可用模型选择器
 /qb-subagent-model <provider/model-id>   # 直接设置当前 session override
 /qb-subagent-model status                # 查看当前选择、来源与可用状态
-/qb-subagent-model reset                 # 清除 override，恢复 package 配置/default policy
+/qb-subagent-model reset                 # 清除 override 并禁用 delegation，恢复 inline workflow
 ```
 
 - 不带参数且 `ctx.hasUI=true` 时，使用 `ctx.ui.select`/`SelectList` 显示模型；不能修改主 agent当前模型。
@@ -358,16 +358,16 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 - 选择后再次通过 `modelRegistry.find(provider,id)`、`hasConfiguredAuth()` 和 task 所需能力校验；使用稳定的 `provider/model-id` 保存，不保存模糊 pattern。
 - 当前研究范围默认只定义 **session-scoped override**：通过 `pi.appendEntry` 保存不进入 LLM context 的配置记录，使同一 session reload/resume 可重建；不静默写全局或项目 settings。
 - 非 TUI 模式调用不带参数时返回可用模型的有界列表和用法，不阻塞等待 UI；RPC/print automation 使用显式 `provider/model-id`。
-- `/model` 改变主 agent模型时不自动改变已选择的 subagent 模型；只有 reset 后才重新应用 default policy。
+- `/model` 改变主 agent模型时不自动改变已选择的 subagent 模型；reset 后 delegation 保持禁用，直到再次显式选择。
 - 已选模型在后续调用前变为不可用时返回 `model_unavailable`，不得静默继承主模型或升级到其他模型。
 
 跨 session/global/project 持久化不包含在当前要求中；若后续需要，必须单独确定 scope、trust、配置文件位置和冲突优先级。
 
 ### Model And Cost Routing
 
-- session command override 优先于 package/default economy policy；每个 task kind 仍须验证所选模型满足工具与上下文要求。
-- 未配置 override 时，每个 task kind 显式映射到 package/config 允许的 economy model，不默认继承主 agent模型。
-- economy model 不可用时返回 `backend_unavailable` 或 `model_unavailable` 并由主 agent inline fallback；不得静默切换到同等或更昂贵模型。
+- 当前 session 的显式 command selection 是首期唯一 child model 来源；每个 task kind 仍须验证所选模型满足工具与上下文要求。
+- 未配置 selection 或 reset 后，delegation disabled，主 agent继续现有 inline workflow；不默认继承或自动挑选模型。
+- 已选模型不可用时返回 `backend_unavailable` 或 `model_unavailable` 并由主 agent inline fallback；不得静默切换到其他模型。
 - 每次调用记录 model、selection source、turn、input/output/cache tokens、估算费用、耗时和是否 fallback，支持后续比较“主 agent inline”与“lightweight delegate”的总成本。
 - 成本评估包含代理 system prompt、task brief、工具轨迹和主 agent消费摘要的成本；不能只比较模型单 token 单价。
 - 默认仅委派预计需要多次搜索、读取或长日志处理的任务；单次短读取、纯机械检查和直接工具调用更便宜时不启动模型。
@@ -423,7 +423,7 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 - **REQ-008 — Trust boundary:** 默认只加载 package-owned task profiles；项目级 profiles 不属于当前范围，未来只有在项目受信任且用户显式启用后才可使用。
 - **REQ-009 — Failure semantics:** unknown task kind、越权 capability、无效 schema、非零退出、超时、取消和 child session 异常必须可区分并 fail closed；失败后不得启动另一个 child 或推进当前 stage。
 - **REQ-010 — Backend compatibility:** 首期只支持 SDK in-process backend；未来若增加 subprocess backend，必须遵循相同的 dispatch/result、安全和 usage accounting 契约，不得改变 workflow 语义。
-- **REQ-011 — Fixed lightweight scope:** 当前只研究 `context_digest`、`diff_summary`、`doc_fact_scan`、`test_report` 和可选 `trace_scan`；reviewer、planner、architect、test designer、writer 和 implementer 均不属于代理能力。
+- **REQ-011 — Fixed lightweight scope:** 首期只实现 `context_digest`、`doc_fact_scan` 和 `test_report`；`diff_summary` 留作后续候选，`trace_scan` 优先使用确定性工具；reviewer、planner、architect、test designer、writer 和 implementer 均不属于代理能力。
 - **REQ-012 — Existing behavior preservation:** 没有可用 subagent backend 或 delegation 被禁用时，现有 11 个 skills、两个 prompt 入口和五个 `qb_spec_*` tools 必须继续按当前 inline workflow 工作。
 - **REQ-013 — Reference traceability:** 技术调研必须明确记录 Superpowers 的参考流程，以及 qiubai-spec 对其采用、调整、不采用和待验证假设，且不得把外部流程变成本 package 的 next-action 事实源。
 - **REQ-014 — Execution topology:** subagent 必须作为单一主 pipeline 中的顺序、一次性轻量调用；只有固定、非关键、无编辑且隔离收益高于启动成本的任务可委派，所有 stage 推进和语义 gate 由主 agent执行。
@@ -440,9 +440,9 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 - **AC-004**（REQ-007）：proxy schema 和运行状态不包含 tasks array、chain 或并发参数；第二个调用在已有 child 运行时被拒绝或排队，且 child 无法再次 dispatch。
 - **AC-005**（REQ-009）：unknown task kind、越权、schema error、command failure、timeout 和 abort 均有不同错误码；失败后不启动新的 child，也不推进当前 stage。
 - **AC-006**（REQ-010）：SDK backend 满足完整 contract；未来 backend 只有通过相同 fixture 的状态、证据字段、截断和 usage 等价测试后才可加入。
-- **AC-007**（REQ-011）：task-kind allowlist 只包含固定轻量任务，不包含 reviewer/planner/architect/test designer/writer/implementer 或任何写能力。
+- **AC-007**（REQ-011）：task-kind allowlist 只包含 `context_digest`、`doc_fact_scan` 和 `test_report`，不包含 `diff_summary`、`trace_scan`、reviewer/planner/architect/test designer/writer/implementer 或任何写能力。
 - **AC-008**（REQ-012）：关闭 delegation 或模拟 backend unavailable 后，现有 workflow resource tests、机械工具 tests、typecheck 和 package smoke test 全部通过。
-- **AC-009**（REQ-001, REQ-005, REQ-012）：用 context digest、diff summary、test report、doc fact scan 和 trace scan 场景验证 subagent 只提供摘要/artifact/evidence，主 agent仍按 `workflow-routing.md` 选择唯一 next action。
+- **AC-009**（REQ-001, REQ-005, REQ-012）：用 context digest、test report 和 doc fact scan 场景验证 subagent 只提供摘要/artifact/evidence，主 agent仍按 `workflow-routing.md` 选择唯一 next action。
 - **AC-010**（REQ-013）：设计文档包含可复述的 Superpowers per-task 与 final verification 流程，并分别列出 Adopt、Adapt、Do Not Adopt 和待验证假设；任何引用都不改变本地集中路由或授权边界。
 - **AC-011**（REQ-014）：固定轻量任务在隔离收益高于启动成本时可委派；开放式规划、代码编辑、语义审查及单次短读取均不委派，且任何结果不得直接推进 stage 或 lifecycle。
 - **AC-012**（REQ-015）：场景记录能展示 child model 与 cost class、完整 token/费用/耗时及 fallback；economy model 不可用时返回主 agent而非静默升级，并能与 inline baseline 比较总成本。
@@ -478,12 +478,14 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 
 ## Open Questions Before Implementation
 
-### Product/Workflow Decisions
+### Resolved Product/Workflow Decisions
 
-1. **Model selection persistence scope**：当前设计为 session-scoped override。推荐首期维持该范围，不写全局或项目配置；跨 session persistence 后续单独设计。
-2. **No-selection behavior**：尚未明确用户未选择模型时是否自动挑选 economy model。推荐首期不自动猜测，保持 delegation disabled/inline fallback，直到用户通过 `/qb-subagent-model` 选择或存在显式 package default。
-3. **MVP task kinds**：当前候选有五类。推荐首期只实现 `context_digest`、`doc_fact_scan`、`test_report`；`diff_summary` 先由 context digest 覆盖，`trace_scan` 优先保留为确定性工具。
-4. **Activation policy**：推荐模型已配置后由 skills 根据 dispatch thresholds 自动调用，不在每次轻量任务前询问；用户可通过 reset 禁用 session override。
+用户于 2026-09-09 采纳推荐方案：
+
+1. 模型选择保持 session-scoped override，不写全局或项目配置。
+2. 未选择模型或 reset 后不自动挑选模型；delegation disabled 并使用 inline fallback。
+3. 首期只实现 `context_digest`、`doc_fact_scan`、`test_report`；`diff_summary` 后续评估，`trace_scan` 使用确定性工具优先。
+4. 模型已配置后由 skills 根据 dispatch thresholds 自动调用，不在每次轻量任务前询问。
 
 ### Engineering Contracts To Finalize In The Implementation Change
 
@@ -493,4 +495,4 @@ Pi 0.85.1 的实际内置选择命令是 `/model`（不是 `/models`）；本设
 - model capability gate：除可用认证外，定义最小 context window、工具调用能力和 structured-output 失败处理。
 - command collision 和无 UI 行为：确认 `/qb-subagent-model` 被同名 extension 占用时的诊断，以及 print/JSON/RPC 的稳定文本/结构化返回。
 
-以上产品决定会改变默认行为或首期范围，应在创建后续实现 change 前明确；工程项可在同一实现 change 的 plan 中定稿并接受测试，不需要改动本次集中 workflow 规则。
+产品决定已明确。以上工程项在后续实现 change 的 plan 中定稿并接受测试，不需要改动本次集中 workflow 规则。

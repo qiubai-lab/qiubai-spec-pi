@@ -13,7 +13,18 @@
 | pending/partial archive | recovery required | recovery required | recovery required | classify safe actions and journal hash; never choose or mutate |
 | caller approval/verification | not evaluated | explicit attestation for promotion | explicit attestation required | not evaluated |
 
-The tools never judge requirement meaning, acceptance sufficiency, user authorization, Directory Map applicability, or long-term context promotion.
+The lifecycle tools never judge requirement meaning, acceptance sufficiency, user authorization, Directory Map applicability, or long-term context promotion.
+
+## Lightweight delegation
+
+| Case | Proxy behavior | Authority boundary |
+| --- | --- | --- |
+| no session model selection | fail closed; inline remains available | no automatic model choice or main-model inheritance |
+| `context_digest` / `doc_fact_scan` | one in-memory child with path-safe read/search tools | evidence only; main agent retains requirements and routing |
+| `test_report` | one attested structured argv through a shell-free runner | main agent selects command and judges fresh acceptance evidence |
+| path/link/tool escape | reject | no project-external path, write, Bash, dispatch, or lifecycle capability |
+| busy/abort/timeout/model failure | distinct failure; dispose child | no retry on another model or lifecycle progression |
+| long output | bounded parent projection plus private temporary artifact | artifact is cleaned on parent session shutdown |
 
 ## Workflow coverage
 
@@ -23,7 +34,8 @@ The tools never judge requirement meaning, acceptance sufficiency, user authoriz
 | strict or materially ambiguous spec | `reviewing-spec-quality` | doctor may report mechanical metadata/trace defects only |
 | shaped standard/strict | `writing-qb-plans` | transition each persisted document after authorization |
 | architecture signal | `checking-architecture-boundaries` | none; semantic decision remains with the agent |
-| critical behavior signal | `protecting-critical-behavior` | none; tests use normal Pi capabilities |
+| critical behavior signal | `protecting-critical-behavior` | tests use normal Pi capabilities; eligible long logs may use attested `test_report` |
+| high-volume shaping/document fact input | owning skill + centralized routing | optional fixed `context_digest`/`doc_fact_scan`; result cannot choose next action |
 | implemented change | `updating-directory-map` when triggered, then `verifying-before-completion` | doctor/inspect, then archive after evidence is judged sufficient |
 | conflict/recovery/manual close | `closing-qb-change` | doctor classifies; recover executes only a user-selected safe complete/restore; no force/overwrite |
 | durable context candidate | `maintaining-project-context` after explicit approval | none |
